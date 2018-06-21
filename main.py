@@ -135,6 +135,7 @@ class Structure:
                                     x2 = np.dot(d, -self.Mols[j].ar_ring_norms[l])
                                 y2 = np.sqrt(np.linalg.norm(d) ** 2 - np.linalg.norm(x2) ** 2)
                                 print(x1, y1, x2, y2)
+                                print(np.degrees(np.arccos(np.dot(self.Mols[i].ar_ring_norms[k], self.Mols[j].ar_ring_norms[l]))))
 
 
 
@@ -182,7 +183,7 @@ class Molecule(Structure):
                 self.ar_ring_norms[i] = (get_plane_norm(points))
                 self.ar_rings.append(True)
             except NotPlanarException:
-                pass
+                self.ar_rings.append(False)
 
 
 def main():
