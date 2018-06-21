@@ -5,9 +5,25 @@ import sys
 import networkx as nx
 
 class NotPlanarException(Exception):
+    """
+    Exception risen if ring not deemed planar.
+    """
     pass
 
 def get_plane_norm(points, planar_cutoff = 0.05):
+    """
+    Get normal vector of plane defined by 3 or more points.
+    
+    Method: normal vectors pointing towards each point from the first one defined, cross product
+    is taken as individual norm from each possible pairs, unless they are close to antiparallel.
+    If each component of the std dev of these norms is smaller then a cutoff, the plane is deemed
+    planar and the mean normalized vector is returned.
+    
+    :param points (list): points defining the plane
+    :param planar_cutoff: cutoff to decide on plarity
+    :return (np.array): normal vector of plane
+    :rises NotPlanarException
+    """
     if len(points) < 3:
         print("Give at least 3 points to define a plane.")
         return None
@@ -33,8 +49,24 @@ def get_plane_norm(points, planar_cutoff = 0.05):
 
 
 class Structure:
+    """
+        Object handling the data a structure loaded from an xyz file.
 
+        Connectivity is based on proximity set by a threshold.
+
+        Attributes:
+            atoms (list): atom names
+            coord (dict): atom coordinates of each index
+            count (int): number of atoms
+            connect (np.array): symmetric (adjacency) matrix of connectivity
+            graph (nx.Graph): connectivity graph based on the connectivity cutoff
+            molecules (list): separate molecules defined by atom indices
+            Mols (list): Molecule objects consisting the structure
+        """
     def __init__(self):
+        """
+        Object initiation.
+        """
         self.atoms = []
         self.coord = {}
         self.count = 0
@@ -48,6 +80,12 @@ class Structure:
         self.planar_norm = None
 
     def read_xyz(self, filename):
+        """
+        Read structure from xyz file.
+        
+        :param filename (str): path to xyz file 
+        :return: 
+        """
         if not os.path.isfile(filename):
             print("Cannot open file {0}".format(filename))
             sys.exit(0)
@@ -64,6 +102,15 @@ class Structure:
         print("{0:d} atoms were read from {1}".format(self.count, filename))
 
     def get_connectivity(self, cutoff = 1.8):
+        """
+        Create connectivity/adjacency matrix and bond network graph.
+        
+        Bonding is distinguished from distance by a give threshold.
+        Molecules are recognized as separated subgraphs of connectivity. 
+               
+        :param cutoff: bonding cutoff
+        :return: 
+        """
         if self.count == 0:
             print("There is no atom read to be processed.")
             return
@@ -77,9 +124,14 @@ class Structure:
         self.graph = nx.from_numpy_matrix(self.connect)
         for c in nx.connected_components(self.graph):
             self.molecules.append(c)
-        print("With the connectivity criterium of {:f}, {:d} separate molecules were identified.".format(cutoff, len(self.molecules)))
+        print("With the connectivity criterion of {:f}, {:d} separate molecules were identified.".format(cutoff, len(self.molecules)))
 
     def get_trivalent(self, atoms = ['C', 'N']):
+        """
+        Deprecated
+        :param atoms: 
+        :return: 
+        """
         if self.connect == None:
             self.get_connectivity()
         self.trivalent = []
@@ -93,6 +145,11 @@ class Structure:
                         self.neighbours[i].append(j)
 
     def get_planar(self, cutoff = 2):
+        """
+        Deprecated
+        :param cutoff: 
+        :return: 
+        """
         if self.trivalent == None:
             self.get_trivalent()
         self.planar = []
@@ -108,10 +165,18 @@ class Structure:
                 self.planar.append(i)
                 self.planar_norm[i] = get_plane_norm([self.coord[i], self.coord[self.neighbours[i][0]], self.coord[self.neighbours[i][1]], self.coord[self.neighbours[i][2]]])
 
-    def process_mols(self):
+    def process_mols(self, planar_cutoff = 0.05):
+        """
+        Create Molecule object for each identified molecule.
+        
+        Rings in molecules are automatically evaluated to find aromatic/planar ones. 
+        :return: 
+        """
+        if self.connect == None:
+            self.get_connectivity()
         for mol in self.molecules:
             self.Mols.append(Molecule(parent=self, atoms=mol))
-            self.Mols[-1].get_aromatic_rings()
+            self.Mols[-1].get_aromatic_rings(planar_cutoff)
 
     def get_intermolecular_pi_pi(self, cutoff = 4.5):
         if len(self.Mols) < 2:
@@ -141,8 +206,30 @@ class Structure:
 
 
 class Molecule(Structure):
+    """
+    Object handling the data for one molecule.
+    
+    Aromaticity is only based on the planarity of rings.
+    
+    Attributes:
+        ind (list): atom indices from the structure
+        atoms (dict): atom names of each index
+        coord (dict): atom coordinates of each index
+        count (int): number of atoms
+        graph (nx.Graph): connectivity graph based on the parent structure's criteria
+        rings (list): simple rings (cycles) in the molecule
+        centres (list): coordinates of the centre of each rings
+        ar_rings (list): indicator of aromaticity of rings
+        ar_ring_norms (dict): normal vector of each aromatic ring's plane 
+    """
 
     def __init__(self, parent, atoms):
+        """
+        Object initialization.
+        
+        :param parent (Structure): system containing this molecule
+        :param atoms (set): indices of atoms in the molecule
+        """
         self.ind = list(atoms)
         self.atoms = {}
         for i in range(len(parent.atoms)):
@@ -171,7 +258,15 @@ class Molecule(Structure):
         self.ar_rings = []
         self.ar_ring_norms = {}
 
-    def get_aromatic_rings(self):
+    def get_aromatic_rings(self, planar_cutoff = 0.05):
+        """
+        Choose planar rings as aromatic moieties.
+        
+        Check get_plane_norm() for details.
+        
+        :param planar_cutoff (float): threshold distinguishing planar rings
+        :return: void
+        """
         for i in range(len(self.rings)):
             for a in self.rings[i]:
                 self.centres[i] += self.coord[a]
@@ -180,7 +275,7 @@ class Molecule(Structure):
             for a in self.rings[i]:
                 points.append(self.coord[a])
             try:
-                self.ar_ring_norms[i] = (get_plane_norm(points))
+                self.ar_ring_norms[i] = (get_plane_norm(points, planar_cutoff))
                 self.ar_rings.append(True)
             except NotPlanarException:
                 self.ar_rings.append(False)
@@ -188,16 +283,26 @@ class Molecule(Structure):
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument("xyz")
+    parser.add_argument("xyz", help="input xyz file")
+    parser.add_argument("-c", "--bond-cutoff", default="1.8",
+                        help="Maximum distance bonds. Closer atoms will be considered bounded.")
+    parser.add_argument("-i", "--intermolecular-cutoff", default="4.5",
+                        help="Cutoff of intermolecular interaction examined between rings.")
+    parser.add_argument("-p", "--planar-cutoff", default="0.05",
+                        help="Cutoff for finding planar rings.")
     # flag for atoms which can be in a ring
-    # distance cutoff
     args = parser.parse_args()
+    args.c = float(args.c)
+    args.i = float(args.i)
+    args.p = float(args.p)
 
     geom = Structure()
     geom.read_xyz(args.xyz)
-    geom.get_connectivity()
-    geom.process_mols()
-    geom.get_intermolecular_pi_pi()
+    geom.get_connectivity(args.c)
+    geom.process_mols(args.p)
+
+    # output to be handled
+    geom.get_intermolecular_pi_pi(args.i)
 
     print("end")
 
