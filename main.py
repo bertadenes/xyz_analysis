@@ -29,7 +29,7 @@ def get_plane_norm(points, planar_cutoff = 0.05):
     for v in np.nanstd(norms, axis=0):
         if v > [planar_cutoff]:
             raise NotPlanarException
-    return np.nanmean(norms, axis=0)
+    return np.nanmean(norms, axis=0) / np.linalg.norm(np.nanmean(norms, axis=0))
 
 
 class Structure:
@@ -125,7 +125,7 @@ class Structure:
                             d = self.Mols[i].centres[k] - self.Mols[j].centres[l]
                             if np.linalg.norm(d) < cutoff:
                                 print(self.Mols[i].rings[k], self.Mols[j].rings[l])
-                                print(np.linalg.norm(self.Mols[i].centres[k] - self.Mols[j].centres[l]))
+                                print(np.linalg.norm(d))
                                 x1 = np.dot(d, self.Mols[i].ar_ring_norms[k])
                                 if x1 < 0:
                                     x1 = np.dot(d, -self.Mols[i].ar_ring_norms[k])
@@ -135,9 +135,9 @@ class Structure:
                                     x2 = np.dot(d, -self.Mols[j].ar_ring_norms[l])
                                 y2 = np.sqrt(np.linalg.norm(d) ** 2 - np.linalg.norm(x2) ** 2)
                                 print(x1, y1, x2, y2)
-                                print(np.degrees(np.arccos(np.dot(self.Mols[i].ar_ring_norms[k], self.Mols[j].ar_ring_norms[l]))))
-
-
+                                # print(self.Mols[i].centres[k], self.Mols[j].centres[l])
+                                # print(self.Mols[i].ar_ring_norms[k], self.Mols[j].ar_ring_norms[l])
+                                # print(np.linalg.norm(self.Mols[i].ar_ring_norms[k]), np.linalg.norm(self.Mols[j].ar_ring_norms[l]))
 
 
 class Molecule(Structure):
