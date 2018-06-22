@@ -48,6 +48,10 @@ def get_plane_norm(points, planar_cutoff = 0.05):
     return np.nanmean(norms, axis=0) / np.linalg.norm(np.nanmean(norms, axis=0))
 
 
+def get_angle(v1, v2):
+    return np.degrees(np.arccos(np.dot(v1, v2) / (np.linalg.norm(v1) * np.linalg.norm(v2))))
+
+
 class Structure:
     """
         Object handling the data a structure loaded from an xyz file.
@@ -158,9 +162,9 @@ class Structure:
             v1 = self.coord[self.neighbours[i][0]] - self.coord[i]
             v2 = self.coord[self.neighbours[i][1]] - self.coord[i]
             v3 = self.coord[self.neighbours[i][2]] - self.coord[i]
-            a1 = np.degrees(np.arccos(np.dot(v1, v2) / (np.linalg.norm(v1) * np.linalg.norm(v2))))
-            a2 = np.degrees(np.arccos(np.dot(v1, v3) / (np.linalg.norm(v1) * np.linalg.norm(v3))))
-            a3 = np.degrees(np.arccos(np.dot(v3, v2) / (np.linalg.norm(v3) * np.linalg.norm(v2))))
+            a1 = get_angle(v1, v2)
+            a2 = get_angle(v1, v3)
+            a3 = get_angle(v3, v2)
             if (360 - a1 - a2 - a3) < 2:
                 self.planar.append(i)
                 self.planar_norm[i] = get_plane_norm([self.coord[i], self.coord[self.neighbours[i][0]], self.coord[self.neighbours[i][1]], self.coord[self.neighbours[i][2]]])
@@ -201,6 +205,7 @@ class Structure:
                                     x2 = np.dot(d, -self.Mols[j].ar_ring_norms[l])
                                 y2 = np.sqrt(np.linalg.norm(d) ** 2 - np.linalg.norm(x2) ** 2)
                                 print(x1, y1, x2, y2)
+                                print(get_angle(self.Mols[i].ar_ring_norms[k], self.Mols[j].ar_ring_norms[l]))
                                 # print(self.Mols[i].centres[k], self.Mols[j].centres[l])
                                 # print(self.Mols[i].ar_ring_norms[k], self.Mols[j].ar_ring_norms[l])
                                 # print(np.linalg.norm(self.Mols[i].ar_ring_norms[k]), np.linalg.norm(self.Mols[j].ar_ring_norms[l]))
