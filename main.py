@@ -43,7 +43,7 @@ def get_plane_norm(points, planar_cutoff = 0.05):
                     norms[k] = -1 * norms[k]
             k += 1
     for v in np.nanstd(norms, axis=0):
-        if v > [planar_cutoff]:
+        if v > planar_cutoff:
             raise NotPlanarException
     return np.nanmean(norms, axis=0) / np.linalg.norm(np.nanmean(norms, axis=0))
 
@@ -172,7 +172,7 @@ class Structure:
         Rings in molecules are automatically evaluated to find aromatic/planar ones. 
         :return: 
         """
-        if self.connect == None:
+        if len(self.molecules) == 0:
             self.get_connectivity()
         for mol in self.molecules:
             self.Mols.append(Molecule(parent=self, atoms=mol))
@@ -292,17 +292,17 @@ def main():
                         help="Cutoff for finding planar rings.")
     # flag for atoms which can be in a ring
     args = parser.parse_args()
-    args.c = float(args.c)
-    args.i = float(args.i)
-    args.p = float(args.p)
+    args.bond_cutoff = float(args.bond_cutoff)
+    args.intermolecular_cutoff = float(args.intermolecular_cutoff)
+    args.planar_cutoff = float(args.planar_cutoff)
 
     geom = Structure()
     geom.read_xyz(args.xyz)
-    geom.get_connectivity(args.c)
-    geom.process_mols(args.p)
+    geom.get_connectivity(args.bond_cutoff)
+    geom.process_mols(args.planar_cutoff)
 
     # output to be handled
-    geom.get_intermolecular_pi_pi(args.i)
+    geom.get_intermolecular_pi_pi(args.intermolecular_cutoff)
 
     print("end")
 
