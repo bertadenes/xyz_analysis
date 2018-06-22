@@ -20,7 +20,7 @@ def get_plane_norm(points, planar_cutoff = 0.05):
     planar and the mean normalized vector is returned.
     
     :param points (list): points defining the plane
-    :param planar_cutoff: cutoff to decide on plarity
+    :param planar_cutoff: cutoff to decide on planarity
     :return (np.array): normal vector of plane
     :rises NotPlanarException
     """
@@ -180,7 +180,8 @@ class Structure:
 
     def get_intermolecular_pi_pi(self, cutoff = 4.5):
         if len(self.Mols) < 2:
-            print("There are not separate molecules to get intermolecular interaction. Please consider changing the cutoffs.")
+            print("There are not separate molecules to get intermolecular interaction.")
+            print("Please consider changing the cutoffs.")
             return
         for i in range(len(self.Mols)):
             for j in range(i+1, len(self.Mols)):
@@ -241,18 +242,18 @@ class Molecule(Structure):
                 self.coord[key] = value
         self.count = len(self.atoms)
         self.graph = parent.graph.subgraph(self.ind)
-        if parent.trivalent != None:
-            self.trivalent = atoms.intersection(set(parent.trivalent))
-            self.neighbours = {}
-            for key, value in parent.neighbours.items():
-                if key in self.ind:
-                    self.neighbours[key] = value
-        if parent.planar != None:
-            self.planar = atoms.intersection(set(parent.planar))
-            self.planar_norm = {}
-            for key, value in parent.planar_norm.items():
-                if key in self.ind:
-                    self.planar_norm[key] = value
+        # if parent.trivalent != None:
+        #     self.trivalent = atoms.intersection(set(parent.trivalent))
+        #     self.neighbours = {}
+        #     for key, value in parent.neighbours.items():
+        #         if key in self.ind:
+        #             self.neighbours[key] = value
+        # if parent.planar != None:
+        #     self.planar = atoms.intersection(set(parent.planar))
+        #     self.planar_norm = {}
+        #     for key, value in parent.planar_norm.items():
+        #         if key in self.ind:
+        #             self.planar_norm[key] = value
         self.rings = nx.cycle_basis(self.graph)
         self.centres = np.zeros(shape=(len(self.rings), 3), dtype=np.float_)
         self.ar_rings = []
