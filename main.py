@@ -78,6 +78,7 @@ class Structure:
         """
         Object initiation.
         """
+        self.output = ""
         self.atoms = []
         self.coord = {}
         self.count = 0
@@ -89,6 +90,13 @@ class Structure:
         self.neighbours = None
         self.planar = None
         self.planar_norm = None
+
+    def write(self, string):
+        if self.output == "":
+            print("Output is not set for this structure.")
+        else:
+            with open(self.output, "a") as f:
+                f.write(string+"\n")
 
     def read_xyz(self, filename):
         """
@@ -110,9 +118,11 @@ class Structure:
                 l = f.readline().split()
                 self.atoms.append(l[0])
                 self.coord[i] = np.array(l[1:4], dtype=np.float_)
-        print("{0:d} atoms were read from {1}".format(self.count, filename))
+        self.output = filename.split('.')[0] + "_pi-pi-py.dat"
+        with open(self.output, "w") as f:
+            f.write("{0:d} atoms were read from {1}\n".format(self.count, filename))
 
-    def get_connectivity(self, cutoff = 1.8):
+    def get_connectivity(self, cutoff=1.8):
         """
         Create connectivity/adjacency matrix and bond network graph.
         
@@ -135,9 +145,10 @@ class Structure:
         self.graph = nx.from_numpy_matrix(self.connect)
         for c in nx.connected_components(self.graph):
             self.molecules.append(c)
-        print("With the connectivity criterion of {:f}, {:d} separate molecules were identified.".format(cutoff, len(self.molecules)))
+        self.write("With the connectivity criterion of {:f}, {:d} separate molecules were identified."
+                   .format(cutoff, len(self.molecules)))
 
-    def get_trivalent(self, atoms = ['C', 'N']):
+    def get_trivalent(self, atoms=['C', 'N']):
         """
         Deprecated
         :param atoms: 
@@ -152,7 +163,7 @@ class Structure:
                 self.trivalent.append(i)
                 self.neighbours[i] = []
                 for j in range(self.count):
-                    if self.connect[i,j] == True:
+                    if self.connect[i, j]:
                         self.neighbours[i].append(j)
 
     def get_planar(self, cutoff = 2):
@@ -195,6 +206,7 @@ class Structure:
             print("There are not separate molecules to get intermolecular interaction.")
             print("Please consider changing the cutoffs.")
             return
+        self.write("Ring 1                     Ring 2                      d-cent d-plane1 d-plane2 shift1  shift2 angle")
         for i in range(len(self.Mols)):
             for j in range(i+1, len(self.Mols)):
                 for k in range(len(self.Mols[i].rings)):
@@ -202,8 +214,6 @@ class Structure:
                         if self.Mols[i].ar_rings[k] and self.Mols[j].ar_rings[l]:
                             d = self.Mols[i].centres[k] - self.Mols[j].centres[l]
                             if np.linalg.norm(d) < cutoff:
-                                print(self.Mols[i].rings[k], self.Mols[j].rings[l])
-                                print(np.linalg.norm(d))
                                 x1 = np.dot(d, self.Mols[i].ar_ring_norms[k])
                                 if x1 < 0:
                                     x1 = np.dot(d, -self.Mols[i].ar_ring_norms[k])
@@ -212,11 +222,16 @@ class Structure:
                                 if x2 < 0:
                                     x2 = np.dot(d, -self.Mols[j].ar_ring_norms[l])
                                 y2 = np.sqrt(np.linalg.norm(d) ** 2 - np.linalg.norm(x2) ** 2)
-                                print(x1, y1, x2, y2)
-                                print(get_angle(self.Mols[i].ar_ring_norms[k], self.Mols[j].ar_ring_norms[l]))
-                                # print(self.Mols[i].centres[k], self.Mols[j].centres[l])
-                                # print(self.Mols[i].ar_ring_norms[k], self.Mols[j].ar_ring_norms[l])
-                                # print(np.linalg.norm(self.Mols[i].ar_ring_norms[k]), np.linalg.norm(self.Mols[j].ar_ring_norms[l]))
+                                op = "["
+                                for a in self.Mols[i].rings[k]:
+                                    op += "{:4d}".format(a + 1)
+                                op += "] ["
+                                for a in self.Mols[j].rings[l]:
+                                    op += "{:4d}".format(a + 1)
+                                op += "]"
+                                self.write("{0} {1:8.4f}{2:8.4f}{3:8.4f}{4:8.4f}{5:8.4f}{6:6.2f}"
+                                            .format(op, np.linalg.norm(d), x1, x2, y1, y2,
+                                            get_angle(self.Mols[i].ar_ring_norms[k], self.Mols[j].ar_ring_norms[l])))
 
 
 class Molecule(Structure):
@@ -244,6 +259,7 @@ class Molecule(Structure):
         :param parent (Structure): system containing this molecule
         :param atoms (set): indices of atoms in the molecule
         """
+        self.output = parent.output
         self.ind = list(atoms)
         self.atoms = {}
         for i in range(len(parent.atoms)):
@@ -301,6 +317,7 @@ class Molecule(Structure):
         """
         if len(self.ar_rings) == 0:
             self.get_aromatic_rings()
+        self.write("Ring 1                     Ring 2                    Atom1 Atom2 angle")
         for e in self.graph.edges():
             r1 = -1
             r2 = -1
@@ -313,7 +330,15 @@ class Molecule(Structure):
                     elif e[1] in self.rings[i]:
                         r2 = i
             if r1 != -1 and r2 != -1:
-                print(e, "is a bond between rings", self.rings[r1], self.rings[r2], get_angle(self.ar_ring_norms[r1], self.ar_ring_norms[r2]))
+                op = "["
+                for a in self.rings[r1]:
+                    op += "{:4d}".format(a + 1)
+                op += "] ["
+                for a in self.rings[r2]:
+                    op += "{:4d}".format(a + 1)
+                op += "]"
+                self.write("{0} {1:4d} {2:4d} {3:6.2f}".format(op, e[0]+1, e[1]+1,
+                                           get_angle(self.ar_ring_norms[r1], self.ar_ring_norms[r2])))
 
 
 
@@ -339,7 +364,6 @@ def main():
 
     # output to be handled
     geom.get_intermolecular_pi_pi(args.intermolecular_cutoff)
-    print("end")
 
 
 
