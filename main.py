@@ -49,6 +49,13 @@ def get_plane_norm(points, planar_cutoff = 0.05):
 
 
 def get_angle(v1, v2):
+    """
+    Calculates the angle in degrees between two vectors.
+
+    :param v1 (np.array): vector #1
+    :param v2 (np.array): vector #2
+    :return (float): angle between v1 and v2 in degrees
+    """
     return np.degrees(np.arccos(np.dot(v1, v2) / (np.linalg.norm(v1) * np.linalg.norm(v2))))
 
 
@@ -87,8 +94,8 @@ class Structure:
         """
         Read structure from xyz file.
         
-        :param filename (str): path to xyz file 
-        :return: 
+        :param filename (str): path to xyz file
+        :return:
         """
         if not os.path.isfile(filename):
             print("Cannot open file {0}".format(filename))
@@ -181,6 +188,7 @@ class Structure:
         for mol in self.molecules:
             self.Mols.append(Molecule(parent=self, atoms=mol))
             self.Mols[-1].get_aromatic_rings(planar_cutoff)
+            self.Mols[-1].get_ar_ring_angles()
 
     def get_intermolecular_pi_pi(self, cutoff = 4.5):
         if len(self.Mols) < 2:
@@ -286,6 +294,28 @@ class Molecule(Structure):
             except NotPlanarException:
                 self.ar_rings.append(False)
 
+    def get_ar_ring_angles(self):
+        """
+        Check if there are neighbouring aromatic rings and if so, calculate the angle between their planes
+        :return: void
+        """
+        if len(self.ar_rings) == 0:
+            self.get_aromatic_rings()
+        for e in self.graph.edges():
+            r1 = -1
+            r2 = -1
+            for i in range(len(self.rings)):
+                if self.ar_rings[i]:
+                    if e[0] in self.rings[i] and e[1] in self.rings[i]:
+                        break
+                    elif e[0] in self.rings[i]:
+                        r1 = i
+                    elif e[1] in self.rings[i]:
+                        r2 = i
+            if r1 != -1 and r2 != -1:
+                print(e, "is a bond between rings", self.rings[r1], self.rings[r2], get_angle(self.ar_ring_norms[r1], self.ar_ring_norms[r2]))
+
+
 
 def main():
     parser = argparse.ArgumentParser()
@@ -309,7 +339,6 @@ def main():
 
     # output to be handled
     geom.get_intermolecular_pi_pi(args.intermolecular_cutoff)
-
     print("end")
 
 
