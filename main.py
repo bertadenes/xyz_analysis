@@ -73,6 +73,7 @@ class Structure:
             graph (nx.Graph): connectivity graph based on the connectivity cutoff
             molecules (list): separate molecules defined by atom indices
             Mols (list): Molecule objects consisting the structure
+            test
         """
     def __init__(self):
         """
