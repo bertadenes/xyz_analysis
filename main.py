@@ -55,7 +55,7 @@ def get_plane_norm(points, planar_cutoff = 0.05):
         for v in np.std(nonnannorms, axis=0):
             if v > planar_cutoff:
                 raise NotPlanarException
-        return np.mean(norms, axis=0) / np.linalg.norm(np.nanmean(nonnannorms, axis=0))
+        return np.mean(norms, axis=0) / np.linalg.norm(np.mean(nonnannorms, axis=0))
 
 
 def get_angle(v1, v2):
