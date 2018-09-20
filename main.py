@@ -42,10 +42,20 @@ def get_plane_norm(points, planar_cutoff = 0.05):
                 if np.dot(norms[k], norms[0]) < 0:
                     norms[k] = -1 * norms[k]
             k += 1
-    for v in np.nanstd(norms, axis=0):
-        if v > planar_cutoff:
-            raise NotPlanarException
-    return np.nanmean(norms, axis=0) / np.linalg.norm(np.nanmean(norms, axis=0))
+    try:
+        for v in np.nanstd(norms, axis=0):
+            if v > planar_cutoff:
+                raise NotPlanarException
+        return np.nanmean(norms, axis=0) / np.linalg.norm(np.nanmean(norms, axis=0))
+    except AttributeError:
+        nonnannorms = []
+        for n in norms:
+            if np.nan not in norms:
+                nonnannorms.append(n)
+        for v in np.std(nonnannorms, axis=0):
+            if v > planar_cutoff:
+                raise NotPlanarException
+        return np.mean(norms, axis=0) / np.linalg.norm(np.nanmean(nonnannorms, axis=0))
 
 
 def get_angle(v1, v2):
@@ -73,7 +83,6 @@ class Structure:
             graph (nx.Graph): connectivity graph based on the connectivity cutoff
             molecules (list): separate molecules defined by atom indices
             Mols (list): Molecule objects consisting the structure
-            test
         """
     def __init__(self):
         """
