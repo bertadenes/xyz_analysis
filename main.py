@@ -229,7 +229,7 @@ class Structure:
                                 for a in self.Mols[j].rings[l]:
                                     op += "{:4d}".format(a + 1)
                                 op += "]"
-                                self.write("{0} {1:8.4f}{2:8.4f}{3:8.4f}{4:8.4f}{5:8.4f}{6:6.2f}"
+                                self.write("{0} {1:8.4f}{2:8.4f}{3:8.4f}{4:8.4f}{5:8.4f}{6:8.2f}"
                                             .format(op, np.linalg.norm(d), x1, x2, y1, y2,
                                             get_angle(self.Mols[i].ar_ring_norms[k], self.Mols[j].ar_ring_norms[l])))
 
