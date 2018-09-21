@@ -42,20 +42,10 @@ def get_plane_norm(points, planar_cutoff = 0.05):
                 if np.dot(norms[k], norms[0]) < 0:
                     norms[k] = -1 * norms[k]
             k += 1
-    try:
-        for v in np.nanstd(norms, axis=0):
-            if v > planar_cutoff:
-                raise NotPlanarException
-        return np.nanmean(norms, axis=0) / np.linalg.norm(np.nanmean(norms, axis=0))
-    except AttributeError:
-        nonnannorms = []
-        for n in norms:
-            if np.nan not in norms:
-                nonnannorms.append(n)
-        for v in np.std(nonnannorms, axis=0):
-            if v > planar_cutoff:
-                raise NotPlanarException
-        return np.mean(norms, axis=0) / np.linalg.norm(np.mean(nonnannorms, axis=0))
+    for v in np.nanstd(norms, axis=0):
+        if v > planar_cutoff:
+            raise NotPlanarException
+    return np.nanmean(norms, axis=0) / np.linalg.norm(np.nanmean(norms, axis=0))
 
 
 def get_angle(v1, v2):
@@ -66,7 +56,7 @@ def get_angle(v1, v2):
     :param v2 (np.array): vector #2
     :return (float): angle between v1 and v2 in degrees
     """
-    return np.degrees(np.arccos(np.dot(v1, v2) / (np.linalg.norm(v1) * np.linalg.norm(v2))))
+    return np.degrees(np.arccos(np.dot(v1, v2) / (np.linalg.norm(v1) * np.linalg.nannorm(v2))))
 
 
 class Structure:
